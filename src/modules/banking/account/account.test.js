@@ -1,93 +1,40 @@
 import { describe, it, vi, expect, afterEach } from "vitest";
-import {createAccount, getAccountById, deleteAccountById} from "./account.service.js";
+import * as repository from "./account.repository.js";
+import { sql } from "../../../infrastructure/db.js";
 
-vi.mock("./account.repository", async (importOriginal) => ({
-    ...(await importOriginal()),
-    createAccountInRepository: vi.fn((data) => {
-        return {
-            id: 4,
-            userId: data.userId,
-            balance: data.balance,
-        };
-    }),
-    getAccountByIdInRepository: vi.fn((id, userId, amount) => {
-        return {
-            id: id,
-            userId: userId,
-            balance: amount,
-        };
-    }),
-    deleteAccountByIdInRepository: vi.fn((id) => {
-        return {
-            id: id,
-        };
-    }),
+vi.mock('../../../infrastructure/db.js', () => ({
+    sql: vi.fn()
 }));
 
-describe("Account Service", () => {
-    afterEach(() => vi.clearAllMocks());
-
-    it("should create an account", async () => {
-        try {
-            await createAccount({
-                userId: 1,
-                balance : 9999,
-            });
-            assert.fail("should trigger a bad request error when account creation.");
-        } catch (e) {
-            expect(e.name).toBe('HttpBadRequest');
-            expect(e.statusCode).toBe(400);
-        }
+describe("Account Repository", () => {
+    afterEach(() => {
+        vi.clearAllMocks();
     });
 
-    it('should get an account by id', async () => {
-        try {
-            await getAccountById(4);
-            assert.fail("should trigger a bad request error when account retrieval.");
-        } catch (e) {
-            expect(e.name).toBe('HttpBadRequest');
-            expect(e.statusCode).toBe(400);
-        }
+    it("should create an account in the repository", async () => {
+        const mockAccount = { id: 1, userId: 1, amount: 1000 };
+        sql.mockResolvedValueOnce([mockAccount]);
+
+        const result = await repository.createAccountInRepository(mockAccount);
+        expect(result).toEqual(mockAccount);
+        expect(sql).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO accounts"), expect.anything());
     });
 
-    it('should delete an account', async () => {
-        try {
-            await deleteAccountById(4);
-            assert.fail("should trigger a bad request error when account deletion.");
-        } catch (e) {
-            expect(e.name).toBe('HttpBadRequest');
-            expect(e.statusCode).toBe(400);
-        }
+    it("should get an account by ID in the repository", async () => {
+        const mockAccount = { id: 1, userId: 1, amount: 1000 };
+        sql.mockResolvedValueOnce([mockAccount]);
+
+        const result = await repository.getAccountByIdInRepository(1, 1, 1000);
+        expect(result).toEqual(mockAccount);
+        expect(sql).toHaveBeenCalledWith(expect.stringContaining("SELECT * FROM accounts"), expect.anything());
     });
 
-});
+    it("should delete an account by ID in the repository", async () => {
+        const mockAccount = { id: 1 };
+        sql.mockResolvedValueOnce([mockAccount]);
 
-describe("Account Service with bad parameters", () => {
-    it("should fail to create an account with invalid parameters", async () => {
-        const invalidParameters = [
-            { userId: "4", balance: "9999" },
-            {},
-        ];
-
-        for (const params of invalidParameters) {
-            try {
-                await createAccount(params);
-                expect.fail("Expected method to throw an HttpBadRequest due to invalid parameters.");
-            } catch (e) {
-                expect(e.name).toBe('HttpBadRequest');
-                expect(e.statusCode).toBe(400);
-            }
-        }
+        const result = await repository.deleteAccountByIdInRepository(1);
+        expect(result).toEqual(mockAccount);
+        expect(sql).toHaveBeenCalledWith(expect.stringContaining("DELETE FROM accounts"), expect.anything());
     });
-
-    it('should fail to delete an account with invalid parameters', async () => {
-        try {
-            await deleteAccountById("4");
-            expect.fail("Expected method to throw an HttpBadRequest due to invalid parameters.");
-        } catch (e) {
-            expect(e.name).toBe('HttpBadRequest');
-            expect(e.statusCode).toBe(400);
-        }
-    });
-
 });

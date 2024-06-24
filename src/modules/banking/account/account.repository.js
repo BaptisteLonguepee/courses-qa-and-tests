@@ -22,7 +22,16 @@ export async function getAccountByIdInRepository(id, userId, amount) {
 export async function deleteAccountByIdInRepository(id) {
   const accounts = await sql`
     DELETE FROM accounts
-    WHERE id = ${id}
+    WHERE id = ${id}import { defineConfig } from 'vitest/config';
+
+    export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'c8',
+      reporter: ['text', 'html'],
+    },
+  },
+});
     RETURNING *
     `;
 
